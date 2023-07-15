@@ -113,7 +113,7 @@ async function getContact(urlContact, leadId) {
       (element) => element.field_id === 1866455
     );
     const telefonoFind = data.custom_fields_values.find(
-      (element) => element.field_id === 180592
+      (element) => element.field_id === 1866519
     );
     const dni = dniFind.values[0].value;
     const telefono = telefonoFind.values[0].value;
@@ -122,34 +122,35 @@ async function getContact(urlContact, leadId) {
     const responseCredit = await getCredit(dni, telefono);
     console.log(responseCredit);
     const importeCredito = responseCredit[0].importe;
+    const mensajeCredito = responseCredit[0].mensaje;
 
     // UPDATE CONTACT
     let contactData;
     if (importeCredito === '0.00') {
-      contactData = {
-        updated_by: 0,
-        status_id: 58825500,
-        custom_fields_values: [
-          {
-            field_id: 1866451,
-            field_name: 'Credito',
-            values: [
-              {
-                value: importeCredito,
-              },
-            ],
-          },
-          {
-            field_id: 1866453,
-            field_name: 'Califica',
-            values: [
-              {
-                value: false,
-              },
-            ],
-          },
-        ],
-      };
+        contactData = {
+          updated_by: 0,
+          status_id: 58825500,
+          custom_fields_values: [
+            {
+              field_id: 1866451,
+              field_name: 'Credito',
+              values: [
+                {
+                  value: importeCredito,
+                },
+              ],
+            },
+            {
+              field_id: 1866453,
+              field_name: 'Califica',
+              values: [
+                {
+                  value: false,
+                },
+              ],
+            },
+          ],
+        };
     } else {
       contactData = {
         updated_by: 0,
@@ -176,7 +177,6 @@ async function getContact(urlContact, leadId) {
         ],
       };
     }
-
     await updateContact(contactData, leadId);
     console.log('contact updated');
   } catch (err) {
