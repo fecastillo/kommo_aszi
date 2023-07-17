@@ -89,16 +89,20 @@ async function getLead(leadId) {
     };
     const response = await axios.get(url, { headers });
     const data = response.data;
+    const findTelDNI = data.custom_fields_values.find((element) => element.field_id === 1866553
+    );
+    const telDNI = findTelDNI.values[0].value;
     const urlContact = data._embedded.contacts[0]._links.self.href;
-    console.log(data)
-    await getContact(urlContact, leadId);
+    console.log(data);
+    console.log(telDNI);
+    await getContact(urlContact, leadId, telDNI);
     console.log('lead processed')
   } catch (err) {
-    console.log(err);
+    console.log(err.message);
   }
 }
 
-async function getContact(urlContact, leadId) {
+async function getContact(urlContact, leadId, telDNI) {
   try {
     console.log('getContact');
     const url = urlContact;
@@ -108,23 +112,18 @@ async function getContact(urlContact, leadId) {
     const response = await axios.get(url, { headers });
     const data = response.data;
     console.log(data);
-    // extract phone number and dni from response
+    // extract phone number id contact
+    const idContact = data.id;
     const dniFind = data.custom_fields_values.find(
       (element) => element.field_id === 1866455
     );
-    const telefonoFind = data.custom_fields_values.find(
-      (element) => element.field_id === 1866519
-    );
     const dni = dniFind.values[0].value;
-    const telefono = telefonoFind.values[0].value;
-
     // CONSULT CREDIT STATUS
-    const responseCredit = await getCredit(dni, telefono);
+    const responseCredit = await getCredit(dni, telDNI);
     console.log(responseCredit);
     const importeCredito = responseCredit[0].importe;
     const mensajeCredito = responseCredit[0].mensaje;
-
-    // UPDATE CONTACT
+    // UPDATE CONTACT & LEAD
     let contactData;
     if (importeCredito === '0.00') {
         contactData = {
@@ -149,8 +148,44 @@ async function getContact(urlContact, leadId) {
                 },
               ],
             },
+            {
+              field_id: 1866553,
+              field_name: 'Tel DNI',
+              values: [
+                {
+                  value: null,
+                },
+              ],
+            },
+            {
+              field_id: 1866619,
+              field_name: 'Motivo rechazo',
+              values: [
+                {
+                  value: null,
+                },
+              ],
+            },
           ],
         };
+        const updatedContact = {
+          updated_by: 0,
+          custom_fields_values: [
+            {
+              field_id: 1866455,
+              field_name: 'DNI',
+              values: [
+                {
+                  value: mensajeCredito,
+                },
+              ],
+            },
+          ],
+        };
+      await updateLead(contactData, leadId);
+      console.log('lead updated');
+      await updateContact(updatedContact, idContact);
+      console.log('contact updated');
     } else {
       contactData = {
         updated_by: 0,
@@ -176,11 +211,11 @@ async function getContact(urlContact, leadId) {
           },
         ],
       };
-    }
-    await updateContact(contactData, leadId);
+    await updateLead(contactData, leadId);
     console.log('contact updated');
+    }
   } catch (err) {
-    console.log(err);
+    console.log(err.message);
   }
 }
 
@@ -196,7 +231,19 @@ function getCredit(dni, telefono) {
   });
 }
 
-async function updateContact(data, leadId) {
+async function updateContact(data, contactId) {
+  try {
+    const url = `https://${subdomain}/api/v4/contacts/${contactId}`;
+    const headers = {
+      Authorization: `Bearer ${variables.access_token}`,
+    };
+    await axios.patch(url, data, { headers });
+  } catch (err) {
+    console.log(err.message);
+  }
+}
+
+async function updateLead(data, leadId) {
   try {
     const url = `https://${subdomain}/api/v4/leads/${leadId}`;
     const headers = {
@@ -204,7 +251,7 @@ async function updateContact(data, leadId) {
     };
     await axios.patch(url, data, { headers });
   } catch (err) {
-    console.log(err);
+    console.log(err.message);
   }
 }
 
@@ -224,18 +271,9 @@ async function changeState(leadId) {
     response = await axios.patch(url, updateData, { headers });
     console.log(response.data);
   } catch (err) {
-    console.log(err);
+    console.log(err.message);
   }
 }
-
-async function process_data(data) {
-  try {
-    await getLead(data.leads.add[0].id);
-  } catch (err) {
-    console.log(err);
-  }
-}
-
 
 app.get('/token', async (req, res) => {
   try {
@@ -260,4 +298,3 @@ app.post('/changeState', async (req, res) => {
 });
 
 app.listen(portApp, () => console.log(`App listening on port ${portApp}`));
-
