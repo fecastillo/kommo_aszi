@@ -162,7 +162,7 @@ async function getContact(urlContact, leadId, telDNI) {
               field_name: 'Motivo rechazo',
               values: [
                 {
-                  value: null,
+                  value: mensajeCredito,
                 },
               ],
             },
@@ -176,7 +176,7 @@ async function getContact(urlContact, leadId, telDNI) {
               field_name: 'DNI',
               values: [
                 {
-                  value: mensajeCredito,
+                  value: null,
                 },
               ],
             },
