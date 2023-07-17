@@ -122,7 +122,8 @@ async function getContact(urlContact, leadId, telDNI) {
     const responseCredit = await getCredit(dni, telDNI);
     console.log(responseCredit);
     const importeCredito = responseCredit[0].importe;
-    const mensajeCredito = responseCredit[0].mensaje;
+    const mensajeCredito = responseCredit[0].error;
+    console.log(mensajeCredito);
     // UPDATE CONTACT & LEAD
     let contactData;
     if (importeCredito === '0.00') {
