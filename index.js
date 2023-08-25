@@ -1,7 +1,7 @@
-const express = require('express');
-const dotenv = require('dotenv');
+const express = require("express");
+const dotenv = require("dotenv");
 const { urlencoded } = require("body-parser");
-const axios = require('axios');
+const axios = require("axios");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
 dotenv.config();
@@ -24,22 +24,22 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 let variables = {
-    access_token: '',
-    refreshTkn: '',
+  access_token: "",
+  refreshTkn: "",
 };
 
 async function getCodes() {
-  console.log('getCodes');
+  console.log("getCodes");
   await client.connect();
-  const collection = client.db('kommo_aszi').collection('variables');
+  const collection = client.db("kommo_aszi").collection("variables");
   const result = await collection.find().sort({ _id: -1 }).limit(1).toArray();
   variables.access_token = result[0].access_token;
   variables.refreshTkn = result[0].refresh_token;
-  console.log('codes obtained');
+  console.log("codes obtained");
 }
 
 async function postRequest() {
@@ -47,41 +47,40 @@ async function postRequest() {
   const data = {
     client_id: process.env.CLIENT_ID,
     client_secret: process.env.CLIENT_SECRET,
-    grant_type: 'refresh_token',
+    grant_type: "refresh_token",
     refresh_token: variables.refreshTkn,
-    redirect_uri:
-      'https://webhook.site/2cec3208-936f-4464-8940-8116b7f3d6ff',
+    redirect_uri: "https://webhook.site/2cec3208-936f-4464-8940-8116b7f3d6ff",
   };
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = { "Content-Type": "application/json" };
   try {
     const response = await axios.post(url, data, { headers });
     const parsedData = response.data;
-    if ('refresh_token' in parsedData) {
+    if ("refresh_token" in parsedData) {
       await uploadCodes(parsedData.access_token, parsedData.refresh_token);
       return variables.refreshTkn;
     } else {
-      throw new Error('No refresh token in response');
+      throw new Error("No refresh token in response");
     }
   } catch (error) {
     throw error;
   }
-}  
+}
 
 async function uploadCodes(access_token, refresh_token) {
-  console.log('uploadCodes');
+  console.log("uploadCodes");
   await client.connect();
-  const collection = client.db('kommo_aszi').collection('variables');
+  const collection = client.db("kommo_aszi").collection("variables");
   await collection.insertOne({
     access_token,
     refresh_token,
     created_at: new Date(),
   });
-  console.log('codes uploaded');
+  console.log("codes uploaded");
 }
 
 async function getLead(leadId) {
   try {
-    console.log('getLead');
+    console.log("getLead");
     await getCodes();
     const url = `https://${subdomain}/api/v4/leads/${leadId}?with=contacts`;
     const headers = {
@@ -89,14 +88,15 @@ async function getLead(leadId) {
     };
     const response = await axios.get(url, { headers });
     const data = response.data;
-    const findTelDNI = data.custom_fields_values.find((element) => element.field_id === 1866553
+    const findTelDNI = data.custom_fields_values.find(
+      (element) => element.field_id === 1866553
     );
     const telDNI = findTelDNI.values[0].value;
     const urlContact = data._embedded.contacts[0]._links.self.href;
     console.log(data);
     console.log(telDNI);
     await getContact(urlContact, leadId, telDNI);
-    console.log('lead processed')
+    console.log("lead processed");
   } catch (err) {
     console.log(err.message);
   }
@@ -104,7 +104,7 @@ async function getLead(leadId) {
 
 async function getContact(urlContact, leadId, telDNI) {
   try {
-    console.log('getContact');
+    console.log("getContact");
     const url = urlContact;
     const headers = {
       Authorization: `Bearer ${variables.access_token}`,
@@ -126,14 +126,18 @@ async function getContact(urlContact, leadId, telDNI) {
     console.log(mensajeCredito);
     // UPDATE CONTACT & LEAD
     let contactData;
-    if (importeCredito === '0.00') {
+    if (importeCredito === "0.00") {
+      if (
+        mensajeCredito ===
+        "Este número de celular está asociado a un cliente existente de Credicuotas." || mensajeCredito === 'El codigo de area del telefono no corresponde con un codigo de area valido.'
+      ) {
         contactData = {
           updated_by: 0,
-          status_id: 58825500,
+          status_id: 59063680,
           custom_fields_values: [
             {
               field_id: 1866451,
-              field_name: 'Credito',
+              field_name: "Credito",
               values: [
                 {
                   value: importeCredito,
@@ -142,7 +146,52 @@ async function getContact(urlContact, leadId, telDNI) {
             },
             {
               field_id: 1866453,
-              field_name: 'Califica',
+              field_name: "Califica",
+              values: [
+                {
+                  value: false,
+                },
+              ],
+            },
+            {
+              field_id: 1866619,
+              field_name: "Motivo rechazo",
+              values: [
+                {
+                  value: mensajeCredito,
+                },
+              ],
+            },
+            {
+              field_id: 1866553,
+              field_name: "Tel DNI",
+              values: [
+                {
+                  value: null,
+                },
+              ],
+            },
+          ],
+        };
+        await updateLead(contactData, leadId);
+        console.log('lead updated');
+      } else {
+        contactData = {
+          updated_by: 0,
+          status_id: 58825500,
+          custom_fields_values: [
+            {
+              field_id: 1866451,
+              field_name: "Credito",
+              values: [
+                {
+                  value: importeCredito,
+                },
+              ],
+            },
+            {
+              field_id: 1866453,
+              field_name: "Califica",
               values: [
                 {
                   value: false,
@@ -151,7 +200,7 @@ async function getContact(urlContact, leadId, telDNI) {
             },
             {
               field_id: 1866553,
-              field_name: 'Tel DNI',
+              field_name: "Tel DNI",
               values: [
                 {
                   value: null,
@@ -160,7 +209,7 @@ async function getContact(urlContact, leadId, telDNI) {
             },
             {
               field_id: 1866619,
-              field_name: 'Motivo rechazo',
+              field_name: "Motivo rechazo",
               values: [
                 {
                   value: mensajeCredito,
@@ -174,7 +223,7 @@ async function getContact(urlContact, leadId, telDNI) {
           custom_fields_values: [
             {
               field_id: 1866455,
-              field_name: 'DNI',
+              field_name: "DNI",
               values: [
                 {
                   value: null,
@@ -183,10 +232,11 @@ async function getContact(urlContact, leadId, telDNI) {
             },
           ],
         };
-      await updateLead(contactData, leadId);
-      console.log('lead updated');
-      await updateContact(updatedContact, idContact);
-      console.log('contact updated');
+        await updateLead(contactData, leadId);
+        console.log("lead updated");
+        await updateContact(updatedContact, idContact);
+        console.log("contact updated");
+      }
     } else {
       contactData = {
         updated_by: 0,
@@ -194,7 +244,7 @@ async function getContact(urlContact, leadId, telDNI) {
         custom_fields_values: [
           {
             field_id: 1866451,
-            field_name: 'Credito',
+            field_name: "Credito",
             values: [
               {
                 value: importeCredito,
@@ -203,7 +253,7 @@ async function getContact(urlContact, leadId, telDNI) {
           },
           {
             field_id: 1866453,
-            field_name: 'Califica',
+            field_name: "Califica",
             values: [
               {
                 value: true,
@@ -212,8 +262,8 @@ async function getContact(urlContact, leadId, telDNI) {
           },
         ],
       };
-    await updateLead(contactData, leadId);
-    console.log('contact updated');
+      await updateLead(contactData, leadId);
+      console.log("contact updated");
     }
   } catch (err) {
     console.log(err.message);
@@ -223,14 +273,26 @@ async function getContact(urlContact, leadId, telDNI) {
 function getCredit(dni, telefono) {
   return new Promise(async (resolve, reject) => {
     try {
-      const url = `http://${domain_fin}?dni=${dni}&phone=${telefono}&CredencialesUsuarioId=${usr_fin}`;
-      const response = await axios.get(url);
+      const url = `https://${domain_fin}?dni=${dni}&telefono=${telefono}&token=${usr_fin}`;
+      const response = await axios.post(url);
       resolve(response.data);
     } catch (err) {
       reject(err);
     }
   });
 }
+
+/*
+async function getCredit2(dni, telefono) {
+  try {
+    const url = `https://${domain_fin}?dni=${dni}&telefono=${telefono}&token=${usr_fin}`;
+    const response = await axios.post(url);
+    return response.data;
+  } catch (err) {
+    console.log(err.message);
+  }
+}
+*/
 
 async function updateContact(data, contactId) {
   try {
@@ -257,7 +319,6 @@ async function updateLead(data, leadId) {
 }
 
 async function changeState(leadId) {
-  
   try {
     console.log(leadId);
     await getCodes();
@@ -276,7 +337,7 @@ async function changeState(leadId) {
   }
 }
 
-app.get('/token', async (req, res) => {
+app.get("/token", async (req, res) => {
   try {
     await getCodes();
     await postRequest();
@@ -286,14 +347,14 @@ app.get('/token', async (req, res) => {
   }
 });
 
-app.post('/handler', async (req, res) => {
-  console.log('body: ',req.body.leads.add[0].id);
+app.post("/handler", async (req, res) => {
+  console.log("body: ", req.body.leads.add[0].id);
   await getLead(req.body.leads.add[0].id);
   res.sendStatus(200);
 });
 
-app.post('/changeState', async (req, res) => {
-  console.log('body ',req.body.leads.status[0].id);
+app.post("/changeState", async (req, res) => {
+  console.log("body ", req.body.leads.status[0].id);
   await changeState(req.body.leads.status[0].id);
   res.sendStatus(200);
 });
