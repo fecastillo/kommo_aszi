@@ -1,10 +1,12 @@
 {
   "dependencies": {
-    "axios": "^1.4.0",
+    "axios": "^1.6.2",
+    "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "mongodb": "^5.7.0",
-    "request": "^2.88.2"
+    "request": "^2.88.2",
+    "soap": "^1.0.0"
   },
   "name": "kommo_aszi",
   "version": "1.0.0",
