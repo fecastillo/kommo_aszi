@@ -26,7 +26,7 @@ const auth =
 
 const uri = process.env.URL_MONGO;
 const subdomain = process.env.SUBDOMAIN_KOMMO;
-const portApp = process.env.PORT_APP || 3000;
+const portApp = process.env.PORT || 3000;
 const jsonResponse = {
   data: {
     user_id: "6509141",
