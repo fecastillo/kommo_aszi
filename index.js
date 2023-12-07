@@ -586,24 +586,7 @@ async function getMaxOferta(ofertas) {
   return { banco: banco, importe: max };
 }
 //FIN DE CONTROL MACRO
-async function changeState(leadId) {
-  try {
-    console.log(leadId);
-    await getCodes();
-    const updateData = {
-      updated_by: 0,
-      status_id: 58803424,
-    };
-    const url = `https://${subdomain}/api/v4/leads/${leadId}`;
-    const headers = {
-      Authorization: `Bearer ${variables.access_token}`,
-    };
-    response = await axios.patch(url, updateData, { headers });
-    console.log("ESTADO CAMBIADO");
-  } catch (err) {
-    console.log("ERROR EN EL BLOQUE CHANGE STATE", err.message);
-  }
-}
+
 //rutas para el widget
 app.post(
   "/api/widget/efece_send_webhook/salesbot_request",
@@ -646,17 +629,4 @@ app.get("/token", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-app.post("/handler", async (req, res) => {
-  console.log("body: ", req.body.leads.add[0].id);
-  await getLead(req.body.leads.add[0].id);
-  res.sendStatus(200);
-});
-
-app.post("/changeState", async (req, res) => {
-  console.log("body ", req.body.leads.status[0].id);
-  await changeState(req.body.leads.status[0].id);
-  res.sendStatus(200);
-});
-
 app.listen(portApp, () => console.log(`App listening on port ${portApp}`));
