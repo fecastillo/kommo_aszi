@@ -441,11 +441,12 @@ async function getCreditMacro(
   console.log(names);
   const lastName = fullName.split(",")[0].toUpperCase();
   console.log(lastName);
+  const sexo = gender == "Masculino" ? "M" : "F";
   const tokenMacro = process.env.TOKEN_MACRO;
   const urlMacro = process.env.URL_MACRO;
   const data = {
     customerId: dni,
-    customerGender: gender,
+    customerGender: sexo,
     customerFirstName: names,
     customerLastName: lastName,
   };
